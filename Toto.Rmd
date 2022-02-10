@@ -1,0 +1,158 @@
+---
+title: "Toto"
+author: "Andrea Low"
+date: "10/02/2022"
+output: html_document
+---
+
+The grand prize for Toto in Singapore this week (10 Feb 2022) is 16 million. What are the expected returns for placing a bet? 
+
+### The Set Up
+A buyer picks at least six numbers, from 1 to 49. 
+
+At the draw, 6 winning numbers + 1 additional number is drawn
+
+3 or more winning numbers on a ticket matching the 7 numbers drawn qualifies the buyer for a cash prize. The prize money escalates with the increase in numbers matched.
+
+Upper bound: All 7 numbers drawn match with the buyer's numbers (with the winner winning both group 1 and group 2 of the draw. 
+
+If 6 numbers on the Toto ticket matches the 6 numbers drawn (apart from the additional number), the jackpot (Group 1) prize is won
+
+### The odds
+6 numbers are drawn from a list of 49 with no repeats
+
+``` {r odds}
+total.possibilities = factorial(49)/(factorial(43)*factorial(6))
+base.odds = 1/total.possibilities
+
+```
+
+### Expected values
+Consider only Group 1 grand prize (guessing all 6 drawn numbers correctly) = 16 million
+```{r grand}
+# Change this variable here as the top prize adjusts
+grandprize = 16000000
+```
+
+Expected earnings for a regular bet where you draw 6 numbers, paying $1
+
+``` {r regular}
+totalcost.1 = 1
+ev.1 = grandprize*base.odds - totalcost.1
+ev.1
+``` 
+
+What if you buy a System 7 ticket, drawing 7 numbers? 
+``` {r system7}
+totalcost.7 = 7
+odds.7 = 7*base.odds
+ev.7 = grandprize*odds.7 - totalcost.7
+ev.7
+```
+
+Or the other end, System 12?
+``` {r system12}
+totalcost.12 = 924
+odds.12 = 924*base.odds
+ev.12 = grandprize*odds.12 - totalcost.12
+ev.12
+
+```
+Looks like if you're going to buy Toto, you should buy System 12 and split the cost or something
+
+Let's take a look at how the expected payoff evolves with the ticket bought
+``` {r systems}
+
+# Odds for each system draw
+
+odds.multiplier = c(1,7,28,84,210,462,924)
+odds = base.odds*odds.multiplier
+
+# Costs are priced according to odds
+costs = odds.multiplier
+
+# Expected values
+ev.vec = grandprize*odds - costs
+plot(ev.vec)
+lines(ev.vec)
+```
+
+So. Fun stuff happens when probabilities are small but outcomes have large magnitudes. 
+
+
+Actually, lets consider all the group prizes now
+
+We know the jackpot prize is 38% of the total pool
+``` {r allgroups}
+ 
+# Prize money
+group2 = 8*grandprize/38
+group3 = 5.5*grandprize/38
+group4 = 3*grandprize/38
+group5 = 50
+group6 = 25
+group7 = 10
+
+# Odds by group
+group2.odds = 1/2330636
+group3.odds = 1/55491
+group4.odds = 1/22197
+group5.odds = 1/1083
+group6.odds = 1/812
+group7.odds = 1/61
+
+```
+
+Now we figure out our expected earnings with a System 12 ticket
+
+``` {r cumulative}
+# Expected payoffs
+
+payoffs =  c(grandprize, group2, group3, group4, group5, group6, group7) * c(odds.12, group2.odds, group3.odds, group4.odds, group5.odds, group6.odds, group7.odds)
+
+final = sum(payoffs) - 924
+final
+```
+
+
+EV evolves linearly with the size of the pool
+
+Considering only System 12 tickets for this and jackpot prizes from 1 - 16 million here:
+
+``` {r newpool, echo = FALSE}
+grandprizes = seq(1000000, 16000000, 1000000)
+
+# Now re-calculate prize money
+
+group2 = 8*grandprizes/38
+group3 = 5.5*grandprizes/38
+group4 = 3*grandprizes/38
+group5 = rep(50, 16)
+group6 = rep(25, 16)
+group7 = rep(10, 16)
+
+# Create payoff matrix
+payoff.matrix =  matrix(NA, nrow = 16, ncol = 7)
+
+odds = c(odds.12, group2.odds, group3.odds, group4.odds, group5.odds, group6.odds, group7.odds)
+prizes = cbind(grandprizes, group2, group3, group4, group5, group6, group7)
+
+odds.fun = function(x){
+  x*odds
+}
+
+payoff.matrix = apply(prizes, c(1), odds.fun)
+payoff.matrix = t(payoff.matrix)
+finals = sum(payoff.matrix[,1:7])
+
+finals = rep(NA, 16)
+for (i in 1:16){
+  finals[i] = sum(payoff.matrix[i, 1:7])
+}
+finals = finals-924
+plot(finals)
+abline(0,0)
+```
+
+
+Don't buy a System 12 ticket unless the grand prize is at least 13million
